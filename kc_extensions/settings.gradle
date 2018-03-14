@@ -1,0 +1,3 @@
+def modulePrefix = ':'
+include modulePrefix + 'kc-extensions'
+project(modulePrefix + 'kc-extensions').projectDir = new File(rootDir,'kc_extensions')
