@@ -20,7 +20,6 @@ import android.text.TextUtils;
 import android.util.Log;
 
 import com.facebook.stetho.urlconnection.ByteArrayRequestEntity;
-import com.facebook.stetho.urlconnection.SimpleRequestEntity;
 import com.facebook.stetho.urlconnection.StethoURLConnectionManager;
 import com.google.android.exoplayer2.C;
 import com.google.android.exoplayer2.upstream.DataSourceException;
@@ -30,10 +29,7 @@ import com.google.android.exoplayer2.upstream.TransferListener;
 import com.google.android.exoplayer2.util.Assertions;
 import com.google.android.exoplayer2.util.Predicate;
 import com.google.android.exoplayer2.util.Util;
-import com.karhick.android.kcextensions.stetho.StethoUrlConnectionReporterImpl;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
@@ -41,7 +37,6 @@ import java.io.InterruptedIOException;
 import java.io.OutputStream;
 import java.lang.reflect.Method;
 import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
 import java.net.NoRouteToHostException;
 import java.net.ProtocolException;
 import java.net.URL;
@@ -696,163 +691,6 @@ public class DefaultHttpDataSource implements HttpDataSource {
                 Log.e(TAG, "Unexpected error while disconnecting", e);
             }
             connection = null;
-        }
-    }
-
-
-    /**
-     * Created by karthikc on 14/03/18.
-     */
-
-    public static class StethoHttpDataSource extends com.google.android.exoplayer2.upstream.DefaultHttpDataSource {
-
-        private StethoUrlConnectionReporterImpl mStethoURLConnectionMgr;
-        private final String userAgent;
-        private final int connectTimeoutMillis;
-        private final int readTimeoutMillis;
-        private final RequestProperties defaultRequestProperties;
-        private final RequestProperties requestProperties;
-        private ByteArrayOutputStream cacheOutputStream;
-        private ByteArrayInputStream relayInputStream;
-
-        public StethoHttpDataSource(String userAgent, Predicate<String> contentTypePredicate,
-                                    TransferListener<? super com.google.android.exoplayer2.upstream.DefaultHttpDataSource> listener, int connectTimeoutMillis,
-                                    int readTimeoutMillis, boolean allowCrossProtocolRedirects,
-                                    RequestProperties defaultRequestProperties) {
-            super(userAgent, contentTypePredicate, listener, connectTimeoutMillis, readTimeoutMillis, allowCrossProtocolRedirects, defaultRequestProperties);
-            this.userAgent = userAgent;
-            this.connectTimeoutMillis = connectTimeoutMillis;
-            this.readTimeoutMillis = readTimeoutMillis;
-            this.defaultRequestProperties = defaultRequestProperties;
-            this.requestProperties = new RequestProperties();
-        }
-
-        public long open(DataSpec dataSpec) throws HttpDataSourceException {
-            final URL url;
-            try {
-                url = new URL(dataSpec.uri.toString());
-            } catch (MalformedURLException e) {
-                throw new HttpDataSourceException("Malformed URL" + dataSpec.uri.toString(), e,
-                        dataSpec, HttpDataSourceException.TYPE_OPEN);
-            }
-            mStethoURLConnectionMgr = new StethoUrlConnectionReporterImpl(url.toString());
-            final HttpURLConnection fakeConnection;
-            SimpleRequestEntity entity = null;
-            if (dataSpec.postBody != null && dataSpec.postBody.length > 0) {
-                entity = new ByteArrayRequestEntity(dataSpec.postBody);
-            }
-            try {
-                fakeConnection = makeConnection(
-                        url,
-                        dataSpec.postBody,
-                        dataSpec.position,
-                        dataSpec.length,
-                        dataSpec.isFlagSet(DataSpec.FLAG_ALLOW_GZIP),
-                        true,
-                        true);
-            } catch (IOException e) {
-                throw new HttpDataSourceException("Unable to connect to " + dataSpec.uri.toString(), e,
-                        dataSpec, HttpDataSourceException.TYPE_OPEN);
-            }
-            mStethoURLConnectionMgr.preConnect(fakeConnection, entity);
-            final long bytesToRead;
-            try {
-                bytesToRead = super.open(dataSpec);
-            } catch (HttpDataSourceException e) {
-                onHttpIOException(getConnection(), e);
-                throw e;
-            }
-            try {
-                mStethoURLConnectionMgr.postConnect(getConnection());
-                cacheOutputStream= new ByteArrayOutputStream();
-            } catch (IOException e) {
-                onHttpIOException(getConnection(), e);
-                throw new HttpDataSourceException("Unable to read from " + dataSpec.uri.toString(), e,
-                        dataSpec, HttpDataSourceException.TYPE_READ);
-            }
-            return bytesToRead;
-        }
-
-        public int read(byte[] buffer, int offset, int readLength) throws HttpDataSourceException {
-            return super.read(buffer,offset,readLength);
-        }
-
-        public void close() throws HttpDataSourceException {
-            super.close();
-        }
-
-
-        @Override
-        public void setRequestProperty(String name, String value) {
-            Assertions.checkNotNull(name);
-            Assertions.checkNotNull(value);
-            requestProperties.set(name, value);
-            super.setRequestProperty(name, value);
-        }
-
-        @Override
-        public void clearRequestProperty(String name) {
-            Assertions.checkNotNull(name);
-            requestProperties.remove(name);
-            super.clearRequestProperty(name);
-        }
-
-        @Override
-        public void clearAllRequestProperties() {
-            requestProperties.clear();
-            super.clearAllRequestProperties();
-        }
-
-
-        public void onHttpIOException(final HttpURLConnection connection, IOException exception) {
-            if (mStethoURLConnectionMgr.isStethoEnabled()) {
-                mStethoURLConnectionMgr.httpExchangeFailed(exception);
-            }
-        }
-
-        private HttpURLConnection makeConnection(URL url, byte[] postBody, long position,
-                                                 long length, boolean allowGzip, boolean followRedirects, boolean doNotConnect) throws IOException {
-            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-            connection.setConnectTimeout(connectTimeoutMillis);
-            connection.setReadTimeout(readTimeoutMillis);
-            if (defaultRequestProperties != null) {
-                for (Map.Entry<String, String> property : defaultRequestProperties.getSnapshot().entrySet()) {
-                    connection.setRequestProperty(property.getKey(), property.getValue());
-                }
-            }
-            for (Map.Entry<String, String> property : requestProperties.getSnapshot().entrySet()) {
-                connection.setRequestProperty(property.getKey(), property.getValue());
-            }
-            if (!(position == 0 && length == C.LENGTH_UNSET)) {
-                String rangeRequest = "bytes=" + position + "-";
-                if (length != C.LENGTH_UNSET) {
-                    rangeRequest += (position + length - 1);
-                }
-                connection.setRequestProperty("Range", rangeRequest);
-            }
-            connection.setRequestProperty("User-Agent", userAgent);
-            if (!allowGzip) {
-                connection.setRequestProperty("Accept-Encoding", "identity");
-            }
-            connection.setInstanceFollowRedirects(followRedirects);
-            connection.setDoOutput(postBody != null);
-            if (doNotConnect) {
-                if (postBody != null) {
-                    connection.setRequestMethod("POST");
-                    if (postBody.length == 0) {
-                        connection.connect();
-                    } else {
-                        connection.setFixedLengthStreamingMode(postBody.length);
-                        connection.connect();
-                        OutputStream os = connection.getOutputStream();
-                        os.write(postBody);
-                        os.close();
-                    }
-                } else {
-                    connection.connect();
-                }
-            }
-            return connection;
         }
     }
 }
