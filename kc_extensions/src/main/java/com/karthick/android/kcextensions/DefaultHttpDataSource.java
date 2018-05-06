@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.karhick.android.kcextensions;
+package com.karthick.android.kcextensions;
 
 import android.net.Uri;
 import android.text.TextUtils;

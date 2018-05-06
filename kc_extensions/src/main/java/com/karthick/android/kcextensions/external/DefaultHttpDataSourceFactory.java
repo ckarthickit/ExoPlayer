@@ -1,8 +1,8 @@
-package com.karhick.android.kcextensions;
+package com.karthick.android.kcextensions.external;
 
 import com.google.android.exoplayer2.upstream.*;
 
-/** A {@link com.google.android.exoplayer2.upstream.DataSource.Factory} that produces {@link DefaultHttpDataSource} instances. */
+/** A {@link com.google.android.exoplayer2.upstream.DataSource.Factory} that produces {@link com.karthick.android.kcextensions.DefaultHttpDataSource} instances. */
 public final class DefaultHttpDataSourceFactory extends HttpDataSource.BaseFactory {
 
     private final String userAgent;
@@ -60,9 +60,9 @@ public final class DefaultHttpDataSourceFactory extends HttpDataSource.BaseFacto
     }
 
     @Override
-    protected DefaultHttpDataSource createDataSourceInternal(
+    protected com.karthick.android.kcextensions.DefaultHttpDataSource createDataSourceInternal(
             HttpDataSource.RequestProperties defaultRequestProperties) {
-        return new DefaultHttpDataSource(userAgent, null, listener, connectTimeoutMillis,
+        return new com.karthick.android.kcextensions.DefaultHttpDataSource(userAgent, null, listener, connectTimeoutMillis,
                 readTimeoutMillis, allowCrossProtocolRedirects, defaultRequestProperties);
     }
 

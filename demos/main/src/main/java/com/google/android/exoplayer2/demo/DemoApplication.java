@@ -24,7 +24,7 @@ import com.google.android.exoplayer2.upstream.DefaultDataSourceFactory;
 import com.google.android.exoplayer2.upstream.HttpDataSource;
 import com.google.android.exoplayer2.upstream.TransferListener;
 import com.google.android.exoplayer2.util.Util;
-import com.karhick.android.kcextensions.DefaultHttpDataSourceFactory;
+import com.karthick.android.kcextensions.external.DefaultHttpDataSourceFactory;
 
 /**
  * Placeholder application to facilitate overriding Application methods for debugging and testing.
