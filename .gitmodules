@@ -1,0 +1,3 @@
+[submodule "kc_extensions/src/main/jni/libebur128"]
+	path = kc_extensions/src/main/jni/libebur128
+	url = git@github.com:jiixyj/libebur128.git
