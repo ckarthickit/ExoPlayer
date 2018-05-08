@@ -4,12 +4,11 @@ import android.util.Log;
 
 import com.karthick.android.kcextensions.annotation.JNIVariable;
 
-import java.io.File;
 
 public final class EBUR128 {
 
     /**
-     *  Corresponds to enums in libebur128/ebur128/ebur128.g
+     * Corresponds to enums in libebur128/ebur128/ebur128.g
      */
     enum error {
         EBUR128_SUCCESS,
@@ -23,19 +22,20 @@ public final class EBUR128 {
     private boolean isInitialized = false;
     private int channels;
     private int sampleRate;
-    private int encoding;
-    public EBUR128(final int encoding, final int channels, final int sampleRate) {
+    private int encodingBytes;
+
+    public EBUR128(final int encodingBytes, final int channels, final int sampleRate) {
         this.channels = channels;
         this.sampleRate = sampleRate;
-        this.encoding = encoding;
+        this.encodingBytes = encodingBytes;
     }
 
-    private void checkInit(){
+    private void checkInit() {
         if (!isInitialized) {
             synchronized (this) {
                 if (!isInitialized) {
-                    nativeinit(encoding, channels, sampleRate);
-                    if(nativeHandle == 0) {
+                    nativeinit(encodingBytes, channels, sampleRate);
+                    if (nativeHandle == 0) {
                         throw new RuntimeException("nativeHandle is null");
                     }
                     isInitialized = true;
@@ -46,11 +46,11 @@ public final class EBUR128 {
 
     public void configure(final int channels, final int sampleRate) {
         checkInit();
-        if(this.channels == channels && this.sampleRate == sampleRate) {
+        if (this.channels == channels && this.sampleRate == sampleRate) {
             //do nothing
             return;
         }
-        nativeConfigure(channels,sampleRate);
+        nativeConfigure(channels, sampleRate);
     }
 
     public void setMaxHistory(long historyInMilliseconds) {
@@ -58,8 +58,31 @@ public final class EBUR128 {
         nativeSetMaxHistory(historyInMilliseconds);
     }
 
+    /**
+     * Reads Complete Frames and accumulates the loudness value in it's internal data structure .
+     * This API assumes that start of the buffer is start of a new Frame.
+     * This API ignores reading any bytes at the end of the buffer that are part of an incomplete frame.
+     * <p>
+     * <h4>Note:</h3>
+     * Care should be taken not to pass incomplete frames to this API.
+     *
+     * @param pcmData
+     * @param readIndex
+     * @param availableSizeInBytes
+     * @return the number of bytes read , -1 if any error
+     */
+    public int addFrames(byte[] pcmData, int readIndex, int availableSizeInBytes) {
+        checkInit();
+        return nativeAddFrames(pcmData, readIndex, availableSizeInBytes);
+    }
 
-    public void dispose()  {
+    public double getIntegratedLoudness() {
+        checkInit();
+        return nativeGetIntegratedLoudness();
+    }
+
+
+    public void dispose() {
         if (nativeHandle == 0) {
             return;
         }
@@ -69,7 +92,7 @@ public final class EBUR128 {
 
     @Override
     protected void finalize() throws Throwable {
-        if(nativeHandle != 0) {
+        if (nativeHandle != 0) {
             Log.e(TAG, "MediaDownloader not closed - warning");
             dispose();
         }
@@ -79,9 +102,17 @@ public final class EBUR128 {
     @JNIVariable
     private long nativeHandle;
 
-    private native void nativeinit(int encoding, int channels, int sampleRate);
+    private native void nativeinit(int encodingBytes, int channels, int sampleRate);
+
     private native int nativeConfigure(int channels, int sampleRate);
+
     private native int nativeSetMaxHistory(long historyInMilliseconds);
+
+
+    private native int nativeAddFrames(byte[] pcmData, int readIndex, int availableSize);
+
+    private native double nativeGetIntegratedLoudness();
+
     private native void nativeDispose();
 
 
