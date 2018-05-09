@@ -83,6 +83,10 @@ import com.google.android.exoplayer2.upstream.HttpDataSource;
 import com.google.android.exoplayer2.util.ErrorMessageProvider;
 import com.google.android.exoplayer2.util.EventLogger;
 import com.google.android.exoplayer2.util.Util;
+import com.karthick.android.kcextensions.external.KCDebugTextViewHelper;
+import com.karthick.android.kcextensions.external.KCDefaultRenderersFactory;
+import com.karthick.android.kcextensions.external.KCSimpleExoPlayer;
+
 import java.lang.reflect.Constructor;
 import java.net.CookieHandler;
 import java.net.CookieManager;
@@ -385,7 +389,7 @@ public class PlayerActivity extends Activity
               : DefaultRenderersFactory.EXTENSION_RENDERER_MODE_ON)
               : DefaultRenderersFactory.EXTENSION_RENDERER_MODE_OFF;
       DefaultRenderersFactory renderersFactory =
-          new DefaultRenderersFactory(this, extensionRendererMode);
+          new KCDefaultRenderersFactory(this, extensionRendererMode);
 
       trackSelector = new DefaultTrackSelector(trackSelectionFactory);
       trackSelector.setParameters(trackSelectorParameters);
@@ -393,12 +397,14 @@ public class PlayerActivity extends Activity
 
       player =
           ExoPlayerFactory.newSimpleInstance(renderersFactory, trackSelector, drmSessionManager);
+      player = new KCSimpleExoPlayer(renderersFactory,trackSelector, drmSessionManager);
       player.addListener(new PlayerEventListener());
       player.setPlayWhenReady(startAutoPlay);
       player.addAnalyticsListener(new EventLogger(trackSelector));
       playerView.setPlayer(player);
       playerView.setPlaybackPreparer(this);
       debugViewHelper = new DebugTextViewHelper(player, debugTextView);
+      debugViewHelper = new KCDebugTextViewHelper((KCSimpleExoPlayer)player, debugTextView);
       debugViewHelper.start();
 
       MediaSource[] mediaSources = new MediaSource[uris.length];

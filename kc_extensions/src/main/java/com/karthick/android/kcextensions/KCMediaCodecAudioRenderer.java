@@ -1,5 +1,6 @@
 package com.karthick.android.kcextensions;
 
+import android.content.Context;
 import android.os.Handler;
 
 import com.google.android.exoplayer2.audio.AudioCapabilities;
@@ -14,21 +15,22 @@ import javax.annotation.Nullable;
 public class KCMediaCodecAudioRenderer extends com.google.android.exoplayer2.audio.MediaCodecAudioRenderer {
     private static final String TAG = "CustomMediaCodecAudioRenderer";
     private final DecoratedAudioSink audioSink;
+
     //We are interested only in decorating Audio Sink
-    public KCMediaCodecAudioRenderer(MediaCodecSelector mediaCodecSelector,
+    public KCMediaCodecAudioRenderer(final Context context, MediaCodecSelector mediaCodecSelector,
                                      @Nullable DrmSessionManager<FrameworkMediaCrypto> drmSessionManager,
                                      boolean playClearSamplesWithoutKeys, @Nullable Handler eventHandler,
                                      @Nullable AudioRendererEventListener eventListener,
                                      @Nullable AudioCapabilities audioCapabilities, AudioProcessor... audioProcessors) {
-        this(mediaCodecSelector, drmSessionManager, playClearSamplesWithoutKeys, eventHandler, eventListener, new DecoratedAudioSink(audioCapabilities, audioProcessors));
+        this(context, mediaCodecSelector, drmSessionManager, playClearSamplesWithoutKeys, eventHandler, eventListener, new DecoratedAudioSink(audioCapabilities, audioProcessors));
     }
 
 
-    protected KCMediaCodecAudioRenderer(MediaCodecSelector mediaCodecSelector,
+    protected KCMediaCodecAudioRenderer(final Context context, MediaCodecSelector mediaCodecSelector,
                                         @Nullable DrmSessionManager<FrameworkMediaCrypto> drmSessionManager,
                                         boolean playClearSamplesWithoutKeys, @Nullable Handler eventHandler,
                                         @Nullable AudioRendererEventListener eventListener, DecoratedAudioSink audioSink) {
-        super(mediaCodecSelector, drmSessionManager, playClearSamplesWithoutKeys, eventHandler, eventListener, audioSink);
+        super(context, mediaCodecSelector, drmSessionManager, playClearSamplesWithoutKeys, eventHandler, eventListener, audioSink);
         this.audioSink = audioSink;
     }
 

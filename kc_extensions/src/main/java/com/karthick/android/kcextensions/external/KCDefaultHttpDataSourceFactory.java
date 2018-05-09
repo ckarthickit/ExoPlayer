@@ -3,7 +3,7 @@ package com.karthick.android.kcextensions.external;
 import com.google.android.exoplayer2.upstream.*;
 
 /** A {@link com.google.android.exoplayer2.upstream.DataSource.Factory} that produces {@link com.karthick.android.kcextensions.DefaultHttpDataSource} instances. */
-public final class DefaultHttpDataSourceFactory extends HttpDataSource.BaseFactory {
+public final class KCDefaultHttpDataSourceFactory extends HttpDataSource.BaseFactory {
 
     private final String userAgent;
     private final TransferListener<? super DataSource> listener;
@@ -12,28 +12,28 @@ public final class DefaultHttpDataSourceFactory extends HttpDataSource.BaseFacto
     private final boolean allowCrossProtocolRedirects;
 
     /**
-     * Constructs a DefaultHttpDataSourceFactory. Sets {@link
+     * Constructs a KCDefaultHttpDataSourceFactory. Sets {@link
      * com.google.android.exoplayer2.upstream.DefaultHttpDataSource#DEFAULT_CONNECT_TIMEOUT_MILLIS} as the connection timeout, {@link
      * com.google.android.exoplayer2.upstream.DefaultHttpDataSource#DEFAULT_READ_TIMEOUT_MILLIS} as the read timeout and disables
      * cross-protocol redirects.
      *
      * @param userAgent The User-Agent string that should be used.
      */
-    public DefaultHttpDataSourceFactory(String userAgent) {
+    public KCDefaultHttpDataSourceFactory(String userAgent) {
         this(userAgent, null);
     }
 
     /**
-     * Constructs a DefaultHttpDataSourceFactory. Sets {@link
+     * Constructs a KCDefaultHttpDataSourceFactory. Sets {@link
      * com.google.android.exoplayer2.upstream.DefaultHttpDataSource#DEFAULT_CONNECT_TIMEOUT_MILLIS} as the connection timeout, {@link
      * com.google.android.exoplayer2.upstream.DefaultHttpDataSource#DEFAULT_READ_TIMEOUT_MILLIS} as the read timeout and disables
      * cross-protocol redirects.
      *
      * @param userAgent The User-Agent string that should be used.
      * @param listener An optional listener.
-     * @see #DefaultHttpDataSourceFactory(String, TransferListener, int, int, boolean)
+     * @see #KCDefaultHttpDataSourceFactory(String, TransferListener, int, int, boolean)
      */
-    public DefaultHttpDataSourceFactory(
+    public KCDefaultHttpDataSourceFactory(
             String userAgent, TransferListener<? super DataSource> listener) {
         this(userAgent, listener, com.google.android.exoplayer2.upstream.DefaultHttpDataSource.DEFAULT_CONNECT_TIMEOUT_MILLIS,
                 com.google.android.exoplayer2.upstream.DefaultHttpDataSource.DEFAULT_READ_TIMEOUT_MILLIS, false);
@@ -49,9 +49,9 @@ public final class DefaultHttpDataSourceFactory extends HttpDataSource.BaseFacto
      * @param allowCrossProtocolRedirects Whether cross-protocol redirects (i.e. redirects from HTTP
      *     to HTTPS and vice versa) are enabled.
      */
-    public DefaultHttpDataSourceFactory(String userAgent,
-                                        TransferListener<? super DataSource> listener, int connectTimeoutMillis,
-                                        int readTimeoutMillis, boolean allowCrossProtocolRedirects) {
+    public KCDefaultHttpDataSourceFactory(String userAgent,
+                                          TransferListener<? super DataSource> listener, int connectTimeoutMillis,
+                                          int readTimeoutMillis, boolean allowCrossProtocolRedirects) {
         this.userAgent = userAgent;
         this.listener = listener;
         this.connectTimeoutMillis = connectTimeoutMillis;

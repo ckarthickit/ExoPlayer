@@ -17,12 +17,11 @@ import java.util.ArrayList;
 
 import javax.annotation.Nullable;
 
-public class DefaultRenderersFactory extends com.google.android.exoplayer2.DefaultRenderersFactory {
+public class KCDefaultRenderersFactory extends com.google.android.exoplayer2.DefaultRenderersFactory {
 
-    public DefaultRenderersFactory(Context context,
-                                   @Nullable DrmSessionManager<FrameworkMediaCrypto> drmSessionManager,
-                                   @com.google.android.exoplayer2.DefaultRenderersFactory.ExtensionRendererMode int extensionRendererMode) {
-        super(context, drmSessionManager, extensionRendererMode, DEFAULT_ALLOWED_VIDEO_JOINING_TIME_MS);
+    public KCDefaultRenderersFactory(Context context,
+                                     @com.google.android.exoplayer2.DefaultRenderersFactory.ExtensionRendererMode int extensionRendererMode) {
+        super(context, extensionRendererMode, DEFAULT_ALLOWED_VIDEO_JOINING_TIME_MS);
     }
 
     @Override
@@ -35,7 +34,7 @@ public class DefaultRenderersFactory extends com.google.android.exoplayer2.Defau
         for (int index = 0; index < out.size(); index++) {
             if (out.get(index) instanceof MediaCodecAudioRenderer) {
                 MediaCodecAudioRenderer audioRenderer = (MediaCodecAudioRenderer) out.get(index);
-                Renderer overrideAudioRenderer = new KCMediaCodecAudioRenderer(MediaCodecSelector.DEFAULT, drmSessionManager, true,
+                Renderer overrideAudioRenderer = new KCMediaCodecAudioRenderer(context, MediaCodecSelector.DEFAULT, drmSessionManager, true,
                         eventHandler, eventListener, AudioCapabilities.getCapabilities(context), audioProcessors);
                 out.remove(index);
                 out.add(index, overrideAudioRenderer);
