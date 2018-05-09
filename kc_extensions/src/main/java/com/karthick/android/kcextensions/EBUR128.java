@@ -10,7 +10,7 @@ public final class EBUR128 {
     /**
      * Corresponds to enums in libebur128/ebur128/ebur128.g
      */
-    enum error {
+    enum Error {
         EBUR128_SUCCESS,
         EBUR128_ERROR_NOMEM,
         EBUR128_ERROR_INVALID_MODE,
@@ -18,34 +18,37 @@ public final class EBUR128 {
         EBUR128_ERROR_NO_CHANGE
     }
 
-    private static final String TAG = "EBUR128";
-    private boolean isInitialized = false;
-    private int channels;
-    private int sampleRate;
-    private int encodingBytes;
-
-    public EBUR128(final int encodingBytes, final int channels, final int sampleRate) {
-        this.channels = channels;
-        this.sampleRate = sampleRate;
-        this.encodingBytes = encodingBytes;
+    /**
+     * Corresponds to enums in JEBUR128.h
+     */
+    enum AudioPcmFormat {
+        ENCODING_8_BIT,
+        ENCODING_16_BIT,
+        ENCODING_32_BIT,
+        ENCODING_FLOAT
     }
 
-    private void checkInit() {
-        if (!isInitialized) {
-            synchronized (this) {
-                if (!isInitialized) {
-                    nativeinit(encodingBytes, channels, sampleRate);
-                    if (nativeHandle == 0) {
-                        throw new RuntimeException("nativeHandle is null");
-                    }
-                    isInitialized = true;
-                }
-            }
-        }
+    private static final String TAG = "EBUR128";
+    private int channels;
+    private int sampleRate;
+    private AudioPcmFormat audioPcmFormat;
+    private double lastLoudnessValue = Double.NEGATIVE_INFINITY;
+
+    public EBUR128(final AudioPcmFormat audioPcmFormat, final int channels, final int sampleRate) {
+        this.channels = channels;
+        this.sampleRate = sampleRate;
+        this.audioPcmFormat = audioPcmFormat;
+    }
+
+    public void initialize() {
+        checkInit();
     }
 
     public void configure(final int channels, final int sampleRate) {
-        checkInit();
+        if (!isValid()) {
+            Log.w(TAG, "Native Object not valid");
+            return;
+        }
         if (this.channels == channels && this.sampleRate == sampleRate) {
             //do nothing
             return;
@@ -54,7 +57,10 @@ public final class EBUR128 {
     }
 
     public void setMaxHistory(long historyInMilliseconds) {
-        checkInit();
+        if (!isValid()) {
+            Log.w(TAG, "Native Object not valid");
+            return;
+        }
         nativeSetMaxHistory(historyInMilliseconds);
     }
 
@@ -72,22 +78,34 @@ public final class EBUR128 {
      * @return the number of bytes read , -1 if any error
      */
     public int addFrames(byte[] pcmData, int readIndex, int availableSizeInBytes) {
-        checkInit();
+        if (!isValid()) {
+            Log.w(TAG, "Native Object not valid");
+            return -1;
+        }
         return nativeAddFrames(pcmData, readIndex, availableSizeInBytes);
     }
 
     public double getIntegratedLoudness() {
-        checkInit();
-        return nativeGetIntegratedLoudness();
+        if (!isValid()) {
+            Log.w(TAG, "Native Object not valid");
+            return lastLoudnessValue;
+        }
+        lastLoudnessValue = nativeGetIntegratedLoudness();
+        return lastLoudnessValue;
     }
 
 
     public void dispose() {
-        if (nativeHandle == 0) {
-            return;
-        }
-        Log.d(TAG, "dispose()");
-        nativeDispose();
+        if (nativeHandle != 0L)
+            synchronized (this) {
+                if (nativeHandle != 0L) {
+                    Log.d(TAG, "dispose()");
+                    nativeDispose();
+                    if (nativeHandle != 0L) {
+                        Log.e(TAG, "dispose of nativeHandle failed. Memory Leaked :/");
+                    }
+                }
+            }
     }
 
     @Override
@@ -96,6 +114,24 @@ public final class EBUR128 {
             Log.e(TAG, "MediaDownloader not closed - warning");
             dispose();
         }
+    }
+
+    private void checkInit() {
+        if (nativeHandle == 0L) {
+            synchronized (this) {
+                if (nativeHandle == 0L) {
+                    Log.d(TAG, "init()");
+                    nativeinit(audioPcmFormat.ordinal(), channels, sampleRate);
+                    if (nativeHandle == 0L) {
+                        throw new RuntimeException("nativeHandle is null");
+                    }
+                }
+            }
+        }
+    }
+
+    private boolean isValid() {
+        return (nativeHandle != 0);
     }
 
     //native interfaces

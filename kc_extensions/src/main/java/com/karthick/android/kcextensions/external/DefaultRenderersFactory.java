@@ -11,6 +11,7 @@ import com.google.android.exoplayer2.audio.MediaCodecAudioRenderer;
 import com.google.android.exoplayer2.drm.DrmSessionManager;
 import com.google.android.exoplayer2.drm.FrameworkMediaCrypto;
 import com.google.android.exoplayer2.mediacodec.MediaCodecSelector;
+import com.karthick.android.kcextensions.KCMediaCodecAudioRenderer;
 
 import java.util.ArrayList;
 
@@ -24,6 +25,7 @@ public class DefaultRenderersFactory extends com.google.android.exoplayer2.Defau
         super(context, drmSessionManager, extensionRendererMode, DEFAULT_ALLOWED_VIDEO_JOINING_TIME_MS);
     }
 
+    @Override
     protected void buildAudioRenderers(Context context,
                                        @Nullable DrmSessionManager<FrameworkMediaCrypto> drmSessionManager,
                                        AudioProcessor[] audioProcessors, Handler eventHandler,
@@ -33,11 +35,12 @@ public class DefaultRenderersFactory extends com.google.android.exoplayer2.Defau
         for (int index = 0; index < out.size(); index++) {
             if (out.get(index) instanceof MediaCodecAudioRenderer) {
                 MediaCodecAudioRenderer audioRenderer = (MediaCodecAudioRenderer) out.get(index);
-                Renderer overrideAudioRenderer = new com.karthick.android.kcextensions.MediaCodecAudioRenderer(MediaCodecSelector.DEFAULT, drmSessionManager, true,
+                Renderer overrideAudioRenderer = new KCMediaCodecAudioRenderer(MediaCodecSelector.DEFAULT, drmSessionManager, true,
                         eventHandler, eventListener, AudioCapabilities.getCapabilities(context), audioProcessors);
                 out.remove(index);
                 out.add(index, overrideAudioRenderer);
             }
+            //TODO :Add Code to Decorate SimpleDecoderAudioRenderer as well
         }
     }
 

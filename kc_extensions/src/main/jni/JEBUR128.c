@@ -9,13 +9,14 @@
 #include "JEBUR128.h"
 #include "jni_handle.h"
 #include "libebur128/ebur128/ebur128.h"
-
 #define TAG "JEBUR128"
 #define DEBUG 1
 
+static int numberOfBytePerSample(audio_pcm_format format);
+
 void
 Java_com_karthick_android_kcextensions_EBUR128_nativeinit(JNIEnv *env, jobject thiz,
-                                                          jint encodingBytes,
+                                                          jint audioPCMFormat,
                                                           jint channels,
                                                           jint sampleRate) {
     ebur128_obj *ebur128Obj = getHandle(env, thiz);
@@ -34,14 +35,15 @@ Java_com_karthick_android_kcextensions_EBUR128_nativeinit(JNIEnv *env, jobject t
             ebur128_set_channel(sts, 4, EBUR128_RIGHT_SURROUND);
         }
         ebur128Obj->sts = sts;
-        ebur128Obj->encoding_bytes = encodingBytes;
+        ebur128Obj->audio_pcm_format = audioPCMFormat;
         ebur128Obj->cache_buffer = NULL;
-        ebur128Obj->cache_size = -1L;
+        ebur128Obj->cache_size = 0;
         setHandle(env, thiz, ebur128Obj);
 #if DEBUG
         __android_log_print(ANDROID_LOG_DEBUG, TAG,
-                            "sts channel=%u, samplerate=%lu, mode=%d",
-                            sts->channels, sts->samplerate, sts->mode);
+                            "creating object= %p, sts channel=%u, samplerate=%lu, mode=%d",
+                            ebur128Obj, ebur128Obj->sts->channels, ebur128Obj->sts->samplerate,
+                            ebur128Obj->sts->mode);
 #endif
     }
 }
@@ -80,46 +82,51 @@ jint Java_com_karthick_android_kcextensions_EBUR128_nativeAddFrames(JNIEnv *env,
             ebur128Obj->cache_buffer = NULL;
             ebur128Obj->cache_size = -1L;
         }
-        ebur128Obj->cache_buffer = (char *) malloc(sizeof(char) * availableSizeInBytes);
+        ebur128Obj->cache_buffer = (uint8_t *) malloc(sizeof(uint8_t) * availableSizeInBytes);
         if (ebur128Obj->cache_buffer == NULL) {
             return EBUR128_ERROR_NOMEM;
         }
         ebur128Obj->cache_size = availableSizeInBytes;
     }
-
     //copy bytes from java byte array to native byte array
-    jbyte *buffer = ebur128Obj->cache_buffer;
-    (*env)->GetByteArrayRegion(env, pcmData, readIndex, availableSizeInBytes, buffer);
-
-    int single_frames_size_in_bytes = (ebur128Obj->sts->channels * ebur128Obj->encoding_bytes);
+    uint8_t *buffer = ebur128Obj->cache_buffer;
+    (*env)->GetByteArrayRegion(env, pcmData, readIndex, availableSizeInBytes, (jbyte *) buffer);
+    if ((*env)->ExceptionCheck(env)) {
+        (*env)->ExceptionDescribe(env);
+    }
+    int single_frames_size_in_bytes = (ebur128Obj->sts->channels *
+                                       numberOfBytePerSample(ebur128Obj->audio_pcm_format));
     int incomplete_frame_bytes = availableSizeInBytes % single_frames_size_in_bytes;
     if (incomplete_frame_bytes != 0) {
         __android_log_print(ANDROID_LOG_WARN, TAG,
                             "passed buffer size not in multiples of frames");
     }
-    if (ebur128Obj->encoding_bytes == sizeof(uint16_t)) {
-        if (ebur128_add_frames_short(ebur128Obj->sts, buffer,
-                                     availableSizeInBytes / single_frames_size_in_bytes) == EBUR128_SUCCESS) {
+    if (ebur128Obj->audio_pcm_format == ENCODING_16_BIT) {
+        if (ebur128_add_frames_short(ebur128Obj->sts,(short*) buffer,
+                                     availableSizeInBytes / single_frames_size_in_bytes) ==
+            EBUR128_SUCCESS) {
             return availableSizeInBytes - incomplete_frame_bytes;
         }
 
-    } else if (ebur128Obj->encoding_bytes == sizeof(uint32_t)) {
-        if (ebur128_add_frames_int(ebur128Obj->sts, buffer,
-                                   availableSizeInBytes / single_frames_size_in_bytes) == EBUR128_SUCCESS) {
+    } else if (ebur128Obj->audio_pcm_format == ENCODING_32_BIT) {
+        if (ebur128_add_frames_int(ebur128Obj->sts,(int*) buffer,
+                                   availableSizeInBytes / single_frames_size_in_bytes) ==
+            EBUR128_SUCCESS) {
             return availableSizeInBytes - incomplete_frame_bytes;
         }
     } else {
         __android_log_print(ANDROID_LOG_WARN, TAG,
-                            "Unrecognized encoding bytes = %d", ebur128Obj->encoding_bytes);
+                            "Unhandled encoding format = %d", ebur128Obj->audio_pcm_format);
     }
     return -1;
 }
 
 
-jdouble Java_com_karthick_android_kcextensions_EBUR128_nativeGetIntegratedLoudness(JNIEnv* env, jobject thiz){
+jdouble Java_com_karthick_android_kcextensions_EBUR128_nativeGetIntegratedLoudness(JNIEnv *env,
+                                                                                   jobject thiz) {
     ebur128_obj *ebur128Obj = getHandle(env, thiz);
-    jdouble  loudness = -INT64_MIN;
-    ebur128_loudness_global(ebur128Obj->sts,&loudness);
+    jdouble loudness = -INT64_MIN;
+    ebur128_loudness_global(ebur128Obj->sts, &loudness);
     return loudness;
 }
 
@@ -132,7 +139,7 @@ void Java_com_karthick_android_kcextensions_EBUR128_nativeDispose(JNIEnv *env, j
     if (ebur128Obj != NULL) {
 
         //destroy ebur128 state
-        ebur128_destroy(ebur128Obj->sts);
+        ebur128_destroy(&(ebur128Obj->sts));
 
         //destroy ebur128 cache
         if (ebur128Obj->cache_buffer != NULL) {
@@ -145,6 +152,20 @@ void Java_com_karthick_android_kcextensions_EBUR128_nativeDispose(JNIEnv *env, j
         free(ebur128Obj);
         setHandle(env, thiz, NULL);
     }
+}
+
+
+static int numberOfBytePerSample(audio_pcm_format format) {
+    if (format == ENCODING_8_BIT) {
+        return sizeof(uint8_t);
+    } else if (format == ENCODING_16_BIT) {
+        return sizeof(uint16_t);
+    } else if (format == ENCODING_32_BIT) {
+        return sizeof(uint32_t);
+    } else if (format == ENCODING_FLOAT) {
+        return sizeof(uint32_t);
+    }
+    return sizeof(uint16_t);
 }
 
 

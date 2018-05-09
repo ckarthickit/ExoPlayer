@@ -75,6 +75,9 @@ import com.google.android.exoplayer2.upstream.DefaultBandwidthMeter;
 import com.google.android.exoplayer2.upstream.HttpDataSource;
 import com.google.android.exoplayer2.util.EventLogger;
 import com.google.android.exoplayer2.util.Util;
+import com.karthick.android.kcextensions.external.KCDebugTextViewHelper;
+import com.karthick.android.kcextensions.external.KCSimpleExoPlayer;
+
 import java.lang.reflect.Constructor;
 import java.net.CookieHandler;
 import java.net.CookieManager;
@@ -303,7 +306,8 @@ public class PlayerActivity extends Activity
       DefaultRenderersFactory renderersFactory = new DefaultRenderersFactory(this,
           drmSessionManager, extensionRendererMode);
 
-      player = ExoPlayerFactory.newSimpleInstance(renderersFactory, trackSelector);
+      //player = ExoPlayerFactory.newSimpleInstance(renderersFactory, trackSelector);
+      player = new KCSimpleExoPlayer(renderersFactory,trackSelector);
       player.addListener(new PlayerEventListener());
       player.addListener(eventLogger);
       player.addMetadataOutput(eventLogger);
@@ -313,7 +317,8 @@ public class PlayerActivity extends Activity
 
       playerView.setPlayer(player);
       playerView.setPlaybackPreparer(this);
-      debugViewHelper = new DebugTextViewHelper(player, debugTextView);
+      //debugViewHelper = new DebugTextViewHelper(player, debugTextView);
+      debugViewHelper = new KCDebugTextViewHelper((KCSimpleExoPlayer)player, debugTextView);
       debugViewHelper.start();
     }
     String action = intent.getAction();
