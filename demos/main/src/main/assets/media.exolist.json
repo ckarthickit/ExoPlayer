@@ -442,6 +442,14 @@
       {
         "name": "Rolland Bass",
         "uri" : "https://freewavesamples.com/files/Roland-JV-2080-Pick-Bass-C2.wav"
+      },
+      {
+        "name": "AC3 Video",
+        "uri": "file:///sdcard/ac3_video.mp4"
+      },
+      {
+        "name": "Dolby Sound Test",
+        "uri" :"file:///sdcard/dolby_sound_test.mp4"
       }
     ]
   },
