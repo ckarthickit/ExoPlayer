@@ -22,11 +22,21 @@ android {
         minSdkVersion project.ext.minSdkVersion
         targetSdkVersion project.ext.targetSdkVersion
         consumerProguardFiles 'proguard-rules.txt'
+        externalNativeBuild {
+            ndkBuild {
+                //arguments "NDK_TOOLCHAIN_VERSION=clang", "APP_SHORT_COMMANDS=true", "APP_ALLOW_MISSING_DEPS=true"
+            }
+        }
     }
 
     sourceSets.main {
         jniLibs.srcDir 'src/main/libs'
         jni.srcDirs = [] // Disable the automatic ndk-build call by Android Studio.
+    }
+    externalNativeBuild {
+        ndkBuild {
+            path './src/main/jni/Android.mk'
+        }
     }
 }
 
