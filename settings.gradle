@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 gradle.ext.exoplayerRoot = settingsDir
-
+gradle.ext.exoplayerModulePrefix = 'exoplayer-'
 def modulePrefix = ':'
 if (gradle.ext.has('exoplayerModulePrefix')) {
     modulePrefix += gradle.ext.exoplayerModulePrefix
@@ -28,3 +28,8 @@ project(modulePrefix + 'demo-ima').projectDir = new File(rootDir, 'demos/ima')
 project(modulePrefix + 'playbacktests').projectDir = new File(rootDir, 'playbacktests')
 
 apply from: 'core_settings.gradle'
+
+
+//gradle.ext.exoplayerRoot = './'
+//gradle.ext.exoplayerModulePrefix = 'exoplayer-'
+//apply from: new File(gradle.ext.exoplayerRoot, 'core_settings.gradle')

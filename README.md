@@ -122,3 +122,11 @@ implementation project(':exoplayer-library-ui')
 
 To develop ExoPlayer using Android Studio, simply open the ExoPlayer project in
 the root directory of the repository.
+
+
+#### Compiling with FFMPEG Extension ####
+* Goto extensions/ffmpeg folder and execute ffmpeg_android_build.sh script  (It downlaod ffmpeg source code and cross-compiles for android architectures)
+	** NDK_PATH in ffmpeg_android_build.sh MUST point to NDKr15c (https://dl.google.com/android/repository/android-ndk-r15c-darwin-x86_64.zip) 
+    ** Higher versions of NDK follow Unified Headers and doesn't get configured properly using ffmpeg Configure script
+* Change ExoPlayer build variant to withExtensionBuild and Compile 
+* 
