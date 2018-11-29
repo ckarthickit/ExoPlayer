@@ -10,6 +10,7 @@ import com.google.android.exoplayer2.audio.AudioCapabilities;
 import com.google.android.exoplayer2.audio.AudioProcessor;
 import com.google.android.exoplayer2.audio.AudioSink;
 import com.google.android.exoplayer2.audio.DefaultAudioSink;
+import com.google.android.exoplayer2.util.Util;
 
 import java.nio.ByteBuffer;
 
@@ -40,7 +41,8 @@ public final class DecoratedAudioSink implements AudioSink {
 
     @Override
     public boolean isEncodingSupported(int encoding) {
-        return defaultAudioSink.isEncodingSupported(encoding);
+        return Util.isEncodingPcm(encoding); //Support only PCM as we need to calculate loudness
+        //return defaultAudioSink.isEncodingSupported(encoding);
     }
 
     @Override
