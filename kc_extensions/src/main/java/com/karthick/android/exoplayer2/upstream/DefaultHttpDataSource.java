@@ -396,7 +396,7 @@ public class DefaultHttpDataSource extends BaseDataSource implements HttpDataSou
         if (inputStream != null) {
             if (mStethoURLConnectionReporter != null) {
                 try {
-                    inputStream = connection.getInputStream();
+                    //inputStream = connection.getInputStream();
                     byte[] buffer = null;
                     if(inputStream.available() > 0) {
                         buffer = new byte[1024];
@@ -582,7 +582,7 @@ public class DefaultHttpDataSource extends BaseDataSource implements HttpDataSou
 
         //KC : Stetho Code
         if(mStethoURLConnectionReporter == null) {
-            mStethoURLConnectionReporter = new StethoURLConnectionManager(connection.getURL().getPath().toString());
+            mStethoURLConnectionReporter = new StethoURLConnectionManager(connection.getURL().getPath());
             ByteArrayRequestEntity requestEntity = (httpBody != null)?new ByteArrayRequestEntity(httpBody): null;
             mStethoURLConnectionReporter.preConnect(connection, requestEntity);
         }
