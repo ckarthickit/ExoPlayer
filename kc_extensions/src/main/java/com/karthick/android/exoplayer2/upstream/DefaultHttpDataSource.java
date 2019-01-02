@@ -18,6 +18,8 @@ package com.karthick.android.exoplayer2.upstream;
 import android.net.Uri;
 import android.support.annotation.Nullable;
 import android.text.TextUtils;
+import com.facebook.stetho.urlconnection.ByteArrayRequestEntity;
+import com.facebook.stetho.urlconnection.StethoURLConnectionManager;
 import com.google.android.exoplayer2.C;
 import com.google.android.exoplayer2.upstream.BaseDataSource;
 import com.google.android.exoplayer2.upstream.DataSourceException;
@@ -94,6 +96,10 @@ public class DefaultHttpDataSource extends BaseDataSource implements HttpDataSou
     private long bytesSkipped;
     private long bytesRead;
 
+
+    //KC : Stetho Code
+    private StethoURLConnectionManager mStethoURLConnectionReporter;
+    //KC : Stetho Code - End
     /**
      * @param userAgent The User-Agent string that should be used.
      * @param contentTypePredicate An optional {@link Predicate}. If a content type is rejected by the
@@ -275,8 +281,22 @@ public class DefaultHttpDataSource extends BaseDataSource implements HttpDataSou
         requestProperties.clear();
     }
 
+    //KC : Stetho Code
     @Override
     public long open(DataSpec dataSpec) throws HttpDataSourceException {
+        try {
+            return openInternal(dataSpec);
+        } catch (HttpDataSourceException e) {
+            if (mStethoURLConnectionReporter != null) {
+                mStethoURLConnectionReporter.httpExchangeFailed(e);
+            }
+            throw e;
+        }
+    }
+    //KC : Stetho Code - End
+
+
+    public long openInternal(DataSpec dataSpec) throws HttpDataSourceException {
         this.dataSpec = dataSpec;
         this.bytesRead = 0;
         this.bytesSkipped = 0;
@@ -342,6 +362,13 @@ public class DefaultHttpDataSource extends BaseDataSource implements HttpDataSou
 
         try {
             inputStream = connection.getInputStream();
+
+            //KC : Stetho Code
+            if(mStethoURLConnectionReporter != null) {
+                inputStream = mStethoURLConnectionReporter.interpretResponseStream(inputStream);
+            }
+            //KC : Stetho Code - End
+
         } catch (IOException e) {
             closeConnectionQuietly();
             throw new HttpDataSourceException(e, dataSpec, HttpDataSourceException.TYPE_OPEN);
@@ -363,8 +390,36 @@ public class DefaultHttpDataSource extends BaseDataSource implements HttpDataSou
         }
     }
 
+    //KC : Stetho Code
     @Override
     public void close() throws HttpDataSourceException {
+        if (inputStream != null) {
+            if (mStethoURLConnectionReporter != null) {
+                try {
+                    inputStream = connection.getInputStream();
+                    byte[] buffer = null;
+                    if(inputStream.available() > 0) {
+                        buffer = new byte[1024];
+                    }
+                    while (inputStream.available() > 0) {
+                        inputStream.read(buffer);
+                    }
+                    closeInternal();
+                } catch (HttpDataSourceException ex) {
+                    throw ex;
+                } catch (IOException ioE) {
+                    //Read Failure
+                    closeConnectionQuietly();
+                    mStethoURLConnectionReporter.httpExchangeFailed(ioE);
+                } finally {
+                    mStethoURLConnectionReporter = null;
+                }
+            }
+        }
+    }
+    //KC : Stetho Code - End
+
+    public void closeInternal() throws HttpDataSourceException {
         try {
             if (inputStream != null) {
                 maybeTerminateInputStream(connection, bytesRemaining());
@@ -524,6 +579,15 @@ public class DefaultHttpDataSource extends BaseDataSource implements HttpDataSou
         connection.setInstanceFollowRedirects(followRedirects);
         connection.setDoOutput(httpBody != null);
         connection.setRequestMethod(DataSpec.getStringForHttpMethod(httpMethod));
+
+        //KC : Stetho Code
+        if(mStethoURLConnectionReporter == null) {
+            mStethoURLConnectionReporter = new StethoURLConnectionManager(connection.getURL().getPath().toString());
+            ByteArrayRequestEntity requestEntity = (httpBody != null)?new ByteArrayRequestEntity(httpBody): null;
+            mStethoURLConnectionReporter.preConnect(connection, requestEntity);
+        }
+        //KC : Stetho Code - End
+
         if (httpBody != null) {
             connection.setFixedLengthStreamingMode(httpBody.length);
             connection.connect();
@@ -533,6 +597,13 @@ public class DefaultHttpDataSource extends BaseDataSource implements HttpDataSou
         } else {
             connection.connect();
         }
+
+        //KC : Stetho Code
+        if(mStethoURLConnectionReporter != null) {
+            mStethoURLConnectionReporter.postConnect();
+        }
+        //KC : Stetho Code - End
+
         return connection;
     }
 
