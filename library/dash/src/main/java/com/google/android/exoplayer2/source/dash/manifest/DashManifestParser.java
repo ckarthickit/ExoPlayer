@@ -100,7 +100,9 @@ public class DashManifestParser extends DefaultHandler
         throw new ParserException(
             "inputStream does not contain a valid media presentation description");
       }
-      return parseMediaPresentationDescription(xpp, uri.toString());
+      DashManifest manifest =  parseMediaPresentationDescription(xpp, uri.toString());
+      printManifestInfo(manifest);
+      return manifest;
     } catch (XmlPullParserException e) {
       throw new ParserException(e);
     }
@@ -1378,6 +1380,76 @@ public class DashManifestParser extends DefaultHandler
       this.revisionId = revisionId;
     }
 
+  }
+
+  private static final String NEW_LINE = "\n";
+  private static final void printManifestInfo(DashManifest manifest) {
+
+    StringBuilder builder =
+            new StringBuilder("KC: [MPD]");
+    builder.append("=======================").append(NEW_LINE)
+            .append("availabilityStartTimeMs: ").append(manifest.availabilityStartTimeMs).append(NEW_LINE) //must for dynamic
+            .append("publishTimeMs: ").append(manifest.publishTimeMs).append(NEW_LINE) //must be present for dynamic
+            .append("durationMs: ").append(manifest.durationMs).append(NEW_LINE);
+    if (manifest.utcTiming != null) {
+      builder.append("utcTiming: ").append(manifest.utcTiming.value).append(NEW_LINE);
+    }
+
+    /******* FIRST PERIOD INFO ************/
+    buildPeriodInfo(builder, manifest, 0);
+    /******** SECOND PERIOD INFO *****************/
+    if (manifest.getPeriodCount() > 1) {
+      buildPeriodInfo(builder, manifest, 1);
+    }
+    builder.append("=======================").append(NEW_LINE);
+    Log.w(TAG, builder.toString());
+  }
+
+  private static void buildPeriodInfo(StringBuilder builder, DashManifest manifest, int periodIndex) {
+    Period period = manifest.getPeriod(periodIndex);
+    long periodDuration = manifest.getPeriodDurationMs(periodIndex);
+    int videoAdaptationSetIndex = period.getAdaptationSetIndex(C.TRACK_TYPE_VIDEO);
+    int audioAdaptationSetIndex = period.getAdaptationSetIndex(C.TRACK_TYPE_AUDIO);
+    Representation videoRepresentation = null;
+    if (videoAdaptationSetIndex != C.INDEX_UNSET) {
+      videoRepresentation = period.adaptationSets.get(videoAdaptationSetIndex).representations.get(0);
+    }
+    Representation audioRepresentation = null;
+    if (audioAdaptationSetIndex != C.INDEX_UNSET) {
+      audioRepresentation = period.adaptationSets.get(audioAdaptationSetIndex).representations.get(0);
+    }
+    if (videoRepresentation instanceof Representation.SingleSegmentRepresentation) {
+      Log.w(TAG, SingleSegmentIndex.class.getName());
+    } else if (videoRepresentation instanceof Representation.MultiSegmentRepresentation) {
+      Log.w(TAG, Representation.MultiSegmentRepresentation.class.getName());
+    }
+
+    String periodLabel = "period(" + periodIndex + ")";
+
+    builder.append(periodLabel).append(".startMs: ").append(period.startMs).append(NEW_LINE);
+    builder.append(periodLabel).append(".duration: ").append(periodDuration).append(NEW_LINE);
+    if (videoRepresentation != null) {
+      buildRepresentationInfo(builder, videoRepresentation, periodDuration, periodLabel + ".video");
+    }
+    if (audioRepresentation != null) {
+      buildRepresentationInfo(builder, audioRepresentation, periodDuration, periodLabel + ".audio");
+    }
+  }
+
+  private static void buildRepresentationInfo(StringBuilder builder, Representation representation, long periodDuration,String prefixLabel) {
+    if(representation.getIndex() == null) {
+      return;
+    }
+    long firstSegmentNum = representation.getIndex().getFirstSegmentNum();
+    long segmentCount = representation.getIndex().getSegmentCount(periodDuration);
+    long lastSegmentNum = representation.getIndex().getSegmentNum(periodDuration - 1, periodDuration);
+    builder.append(prefixLabel).append(".firstSegmentNum: ").append(firstSegmentNum).append(NEW_LINE);
+    builder.append(prefixLabel).append(".firstSegmentStartTime: ").append(representation.getIndex().getTimeUs(firstSegmentNum)).append(NEW_LINE);
+    builder.append(prefixLabel).append(".firstSegmentDuration: ").append(representation.getIndex().getDurationUs(firstSegmentNum, periodDuration)).append(NEW_LINE);
+    builder.append(prefixLabel).append(".lastSegmentNum: ").append(lastSegmentNum).append(NEW_LINE);
+    builder.append(prefixLabel).append(".lastSegmentStartTime: ").append(representation.getIndex().getTimeUs(lastSegmentNum)).append(NEW_LINE);
+    builder.append(prefixLabel).append(".lastSegmentDuration: ").append(representation.getIndex().getDurationUs(lastSegmentNum, periodDuration)).append(NEW_LINE);
+    builder.append(prefixLabel).append(".segmentCount: ").append(segmentCount).append(NEW_LINE);
   }
 
 }

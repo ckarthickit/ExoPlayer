@@ -72,4 +72,17 @@ import com.google.android.exoplayer2.source.MediaSource.MediaPeriodId;
         isLastInTimelinePeriod,
         isFinal);
   }
+
+  public String toString() {
+    return new StringBuilder("[MediaPeriodInfo]")
+            .append(" id: ")
+            .append(id)
+            .append(" startPositionUs: ")
+            .append(startPositionUs)
+            .append(" contentPositionUs:")
+            .append(contentPositionUs)
+            .append(" durationUs: ")
+            .append(durationUs)
+            .toString();
+  }
 }

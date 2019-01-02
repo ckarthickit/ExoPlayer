@@ -80,6 +80,7 @@ import com.google.android.exoplayer2.util.Log;
     sampleStreams = new SampleStream[rendererCapabilities.length];
     mayRetainStreamFlags = new boolean[rendererCapabilities.length];
     MediaPeriod mediaPeriod = mediaSource.createPeriod(info.id, allocator);
+    Log.w(TAG, "KC: [MediaPeriodHolder] create Period with info: " + info);
     if (info.id.endPositionUs != C.TIME_END_OF_SOURCE) {
       mediaPeriod =
           new ClippingMediaPeriod(
@@ -92,11 +93,15 @@ import com.google.android.exoplayer2.util.Log;
   }
 
   public long toRendererTime(long periodTimeUs) {
-    return periodTimeUs + getRendererOffset();
+    long renderTime =  periodTimeUs + getRendererOffset();
+    Log.w(TAG,String.format("periodTime = %s, renderTime=%s",periodTimeUs, renderTime));
+    return renderTime;
   }
 
   public long toPeriodTime(long rendererTimeUs) {
-    return rendererTimeUs - getRendererOffset();
+    long periodTime =  rendererTimeUs - getRendererOffset();
+    Log.w(TAG,String.format("renderTime = %s, periodTime=%s",rendererTimeUs, periodTime));
+    return periodTime;
   }
 
   public long getRendererOffset() {

@@ -20,6 +20,7 @@ import android.support.annotation.Nullable;
 import com.google.android.exoplayer2.source.MediaSource.MediaPeriodId;
 import com.google.android.exoplayer2.source.TrackGroupArray;
 import com.google.android.exoplayer2.trackselection.TrackSelectorResult;
+import com.google.android.exoplayer2.util.Log;
 
 /**
  * Information about an ongoing playback.
@@ -149,6 +150,14 @@ import com.google.android.exoplayer2.trackselection.TrackSelectorResult;
     this.bufferedPositionUs = bufferedPositionUs;
     this.totalBufferedDurationUs = totalBufferedDurationUs;
     this.positionUs = positionUs;
+    Log.w("PlaybackInfo",
+            String.format(
+                    "KC: [PlaybackInfo] periodId=%s, startPosUs=%s, contentPosUs=%s, bufferedPosUs=%s, totalBufDurationUs=%s",
+                    periodId,
+                    startPositionUs,
+                    contentPositionUs,
+                    bufferedPositionUs,
+                    totalBufferedDurationUs));
   }
 
   /**

@@ -913,13 +913,25 @@ public final class DashMediaSource extends BaseMediaSource {
         manifest.getPeriodDurationUs(0));
     PeriodSeekInfo lastPeriodSeekInfo = PeriodSeekInfo.createPeriodSeekInfo(
         manifest.getPeriod(lastPeriodIndex), manifest.getPeriodDurationUs(lastPeriodIndex));
+    Log.w(TAG,"KC: [MPD] firstPeriodSeekInfo : " + firstPeriodSeekInfo);
+    if(lastPeriodIndex > 0) {
+      PeriodSeekInfo secondPeriodSeekInfo = PeriodSeekInfo.createPeriodSeekInfo(manifest.getPeriod(1),
+              manifest.getPeriodDurationUs(1));
+      Log.w(TAG, "KC: [MPD] secondPeriodSeekInfo : " + secondPeriodSeekInfo);
+    }
+    Log.w(TAG,"KC: [MPD] lastPeriodSeekInfo : " + lastPeriodSeekInfo);
     // Get the period-relative start/end times.
     long currentStartTimeUs = firstPeriodSeekInfo.availableStartTimeUs;
     long currentEndTimeUs = lastPeriodSeekInfo.availableEndTimeUs;
     if (manifest.dynamic && !lastPeriodSeekInfo.isIndexExplicit) {
       // The manifest describes an incomplete live stream. Update the start/end times to reflect the
       // live stream duration and the manifest's time shift buffer depth.
+
+      //KC : If window implicit , use current Unix Epoch Time to calculate start/end of window
       long liveStreamDurationUs = getNowUnixTimeUs() - C.msToUs(manifest.availabilityStartTimeMs);
+      Log.w(TAG, "KC: [MPD] manifest.availabilityStartTimeMs= " + manifest.availabilityStartTimeMs);
+
+      //If last period duration is UNBOUNDED, let's exclude it from live stream window
       long liveStreamEndPositionInLastPeriodUs = liveStreamDurationUs
           - C.msToUs(manifest.getPeriod(lastPeriodIndex).startMs);
       currentEndTimeUs = Math.min(liveStreamEndPositionInLastPeriodUs, currentEndTimeUs);
@@ -941,8 +953,14 @@ public final class DashMediaSource extends BaseMediaSource {
       windowChangingImplicitly = true;
     }
     long windowDurationUs = currentEndTimeUs - currentStartTimeUs;
+    Log.w(TAG,String.format("KC: [MPD] currentStartTimeUs: %s, currentEndTimeUs: %s, windowDurationUs: %s" ,
+            currentStartTimeUs,
+            currentEndTimeUs,
+            windowDurationUs));
     for (int i = 0; i < manifest.getPeriodCount() - 1; i++) {
-      windowDurationUs += manifest.getPeriodDurationUs(i);
+      long periodDuration = manifest.getPeriodDurationUs(i);
+      Log.w(TAG, String.format("KC: [MPD] Period(%d) duration: %s", i, periodDuration));
+      windowDurationUs += periodDuration;
     }
     long windowDefaultStartPositionUs = 0;
     if (manifest.dynamic) {
@@ -951,6 +969,7 @@ public final class DashMediaSource extends BaseMediaSource {
           && manifest.suggestedPresentationDelayMs != C.TIME_UNSET) {
         presentationDelayForManifestMs = manifest.suggestedPresentationDelayMs;
       }
+      Log.w(TAG,"KC: [MPD] presentationDelayForManifestMs: " + presentationDelayForManifestMs);
       // Snap the default position to the start of the segment containing it.
       windowDefaultStartPositionUs = windowDurationUs - C.msToUs(presentationDelayForManifestMs);
       if (windowDefaultStartPositionUs < MIN_LIVE_DEFAULT_START_POSITION_US) {
@@ -1037,8 +1056,10 @@ public final class DashMediaSource extends BaseMediaSource {
 
   private long getNowUnixTimeUs() {
     if (elapsedRealtimeOffsetMs != 0) {
+      Log.w(TAG, String.format("KC: [MPD] NowUnixTime elapsedTim= %s elapsedRTOffsetMs= %s", SystemClock.elapsedRealtime() , elapsedRealtimeOffsetMs));
       return C.msToUs(SystemClock.elapsedRealtime() + elapsedRealtimeOffsetMs);
     } else {
+      Log.w(TAG, String.format("KC: [MPD] NowUnixTime currentTime= %s elapsedRTOffsetMs=UNUSED", System.currentTimeMillis()));
       return C.msToUs(System.currentTimeMillis());
     }
   }
@@ -1072,7 +1093,7 @@ public final class DashMediaSource extends BaseMediaSource {
 
         DashSegmentIndex index = adaptationSet.representations.get(0).getIndex();
         if (index == null) {
-          return new PeriodSeekInfo(true, 0, durationUs);
+          return new PeriodSeekInfo(period.id, true, 0, durationUs, durationUs);
         }
         isIndexExplicit |= index.isExplicit();
         int segmentCount = index.getSegmentCount(durationUs);
@@ -1091,19 +1112,39 @@ public final class DashMediaSource extends BaseMediaSource {
             availableEndTimeUs = Math.min(availableEndTimeUs, adaptationSetAvailableEndTimeUs);
           }
         }
+        Log.w(TAG, String.format("KC: [MPD] PeriodId= %s, adaptationIndex=%d periodStart= %s  firstSegmentStart= %s segmentCount= %s",
+                period.id,
+                i,
+                period.startMs,
+                index.getTimeUs(index.getFirstSegmentNum()),
+                segmentCount));
       }
-      return new PeriodSeekInfo(isIndexExplicit, availableStartTimeUs, availableEndTimeUs);
+      return new PeriodSeekInfo(period.id, isIndexExplicit, availableStartTimeUs, availableEndTimeUs, durationUs);
     }
 
+    public final String id;
     public final boolean isIndexExplicit;
     public final long availableStartTimeUs;
     public final long availableEndTimeUs;
+    private final long periodDurationUs;
 
-    private PeriodSeekInfo(boolean isIndexExplicit, long availableStartTimeUs,
-        long availableEndTimeUs) {
+    private PeriodSeekInfo(String id, boolean isIndexExplicit, long availableStartTimeUs,
+        long availableEndTimeUs, long periodDurationUS) {
+      this.id = id;
       this.isIndexExplicit = isIndexExplicit;
       this.availableStartTimeUs = availableStartTimeUs;
       this.availableEndTimeUs = availableEndTimeUs;
+      this.periodDurationUs = periodDurationUS;
+    }
+
+    public String toString() {
+      String stringifiedObj = new StringBuilder("[PeriodSeekInfo]")
+              .append(" id: ").append(id)
+              .append(" availableStartTimeUs: ").append(availableStartTimeUs)
+              .append(" availableEndTimeUs: ").append(availableEndTimeUs)
+              .append(" periodDurationUs: ").append(periodDurationUs)
+              .toString();
+      return stringifiedObj;
     }
 
   }
@@ -1137,6 +1178,13 @@ public final class DashMediaSource extends BaseMediaSource {
       this.windowDefaultStartPositionUs = windowDefaultStartPositionUs;
       this.manifest = manifest;
       this.windowTag = windowTag;
+      Log.w(TAG,String.format(
+              "KC: [Timeline] presentationStart=%s, windowStart=%s, periodID=%s, windowDuration=%s widowDefaultStartPos=%s",
+              presentationStartTimeMs,
+              windowStartTimeMs,
+              firstPeriodId,
+              windowDurationUs/1000,
+              windowDefaultStartPositionUs/1000));
     }
 
     @Override

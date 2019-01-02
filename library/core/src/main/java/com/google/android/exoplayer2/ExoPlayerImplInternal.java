@@ -1522,7 +1522,11 @@ import java.util.Collections;
   private void maybeUpdateLoadingPeriod() throws IOException {
     queue.reevaluateBuffer(rendererPositionUs);
     if (queue.shouldLoadNextMediaPeriod()) {
+      Log.w(TAG,
+              String.format("KC: [MediaPeriodQueue] Loading Next Period"));
       MediaPeriodInfo info = queue.getNextMediaPeriodInfo(rendererPositionUs, playbackInfo);
+      Log.w(TAG,
+              String.format("KC: [MediaPeriodQueue] Next MediaPeriod Info= %s",info));
       if (info == null) {
         maybeThrowSourceInfoRefreshError();
       } else {
@@ -1552,6 +1556,7 @@ import java.util.Collections;
     if (!queue.hasPlayingPeriod()) {
       // This is the first prepared period, so start playing it.
       MediaPeriodHolder playingPeriodHolder = queue.advancePlayingPeriod();
+      Log.w(TAG,"KC: [LoadControl] playingPeriodHolder.info.startPositionUs= " + playingPeriodHolder.info.startPositionUs);
       resetRendererPosition(playingPeriodHolder.info.startPositionUs);
       updatePlayingPeriodRenderers(/* oldPlayingPeriodHolder= */ null);
     }
@@ -1587,6 +1592,7 @@ import java.util.Collections;
     }
     long bufferedDurationUs =
         getTotalBufferedDurationUs(/* bufferedPositionInLoadingPeriodUs= */ nextLoadPositionUs);
+    Log.w(TAG, String.format("KC: [LoadControl] bufferedDurationUs= %s rendererPositionUs=%s", bufferedDurationUs, rendererPositionUs));
     boolean continueLoading =
         loadControl.shouldContinueLoading(
             bufferedDurationUs, mediaClock.getPlaybackParameters().speed);
