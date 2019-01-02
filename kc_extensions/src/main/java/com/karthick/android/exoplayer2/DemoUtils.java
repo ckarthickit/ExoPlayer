@@ -1,4 +1,4 @@
-package com.karhick.android.kcextensions;
+package com.karthick.android.exoplayer2;
 
 import android.content.Context;
 

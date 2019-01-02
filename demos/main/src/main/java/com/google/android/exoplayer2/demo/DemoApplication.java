@@ -29,7 +29,7 @@ import com.google.android.exoplayer2.upstream.cache.CacheDataSourceFactory;
 import com.google.android.exoplayer2.upstream.cache.NoOpCacheEvictor;
 import com.google.android.exoplayer2.upstream.cache.SimpleCache;
 import com.google.android.exoplayer2.util.Util;
-import com.karhick.android.kcextensions.DemoUtils;
+import com.karthick.android.exoplayer2.DemoUtils;
 
 import java.io.File;
 
