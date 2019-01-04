@@ -28,3 +28,8 @@ project(modulePrefix + 'demo-ima').projectDir = new File(rootDir, 'demos/ima')
 project(modulePrefix + 'playbacktests').projectDir = new File(rootDir, 'playbacktests')
 
 apply from: 'core_settings.gradle'
+
+
+if(Boolean.valueOf(kcExtensions)) {
+    apply from: 'kc_extensions/settings.gradle'
+}

@@ -68,12 +68,14 @@ dependencies {
     implementation project(modulePrefix + 'library-hls')
     implementation project(modulePrefix + 'library-smoothstreaming')
     implementation project(modulePrefix + 'library-ui')
+    implementation project(modulePrefix + 'kc-extensions')
     withExtensionsImplementation project(path: modulePrefix + 'extension-ffmpeg')
     withExtensionsImplementation project(path: modulePrefix + 'extension-flac')
     withExtensionsImplementation project(path: modulePrefix + 'extension-ima')
     withExtensionsImplementation project(path: modulePrefix + 'extension-opus')
     withExtensionsImplementation project(path: modulePrefix + 'extension-vp9')
     withExtensionsImplementation project(path: modulePrefix + 'extension-rtmp')
+    implementation 'com.facebook.stetho:stetho:1.5.0'
 }
 
 apply plugin: 'com.google.android.gms.strict-version-matcher-plugin'
